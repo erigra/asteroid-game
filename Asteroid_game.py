@@ -19,6 +19,8 @@ display_surface = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption("Asteroid game!")
 clock = pygame.time.Clock()
 
+# background
+background_surf = pygame.image.load("graphics/background.png").convert()
 
 # sprite groups
 spaceship_group = pygame.sprite.Group()
@@ -38,6 +40,9 @@ while True:
 
         #delta time
         dt = clock.tick() / 1000
+
+        # Background draw
+        display_surface.blit(background_surf, (0,0))
 
         # graphics
         spaceship_group.draw(display_surface)
