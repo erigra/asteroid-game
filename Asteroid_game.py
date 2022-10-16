@@ -9,9 +9,15 @@ class Ship(pygame.sprite.Sprite):
         self.image = pygame.image.load('graphics/ship.png').convert_alpha()
         # 3. We need a rect
         self.rect = self.image.get_rect(center = (WINDOW_WIDTH /2 , WINDOW_HEIGHT /2))
+        # 4. We may add a mask for pixel perfect collisions
+        self.mask = pygame.mask.from_surface(self.image)
+        
         # timer
         self.can_shoot = True
         self.shoot_time = None
+
+        # ship sounds
+        self.laser_sound = pygame.mixer.Sound("music/laser.ogg")
 
     def laser_timer(self):
         if not self.can_shoot:    
@@ -24,13 +30,15 @@ class Ship(pygame.sprite.Sprite):
             Laser(self.rect.midtop, laser_group)
             self.can_shoot = False
             self.shoot_time = pygame.time.get_ticks()
+            self.laser_sound.set_volume(0.3)
+            self.laser_sound.play()
 
     def input_position(self):
         pos = pygame.mouse.get_pos()
         self.rect.center = pos
 
     def meteor_collison_check(self):
-        if pygame.sprite.spritecollide(self, meteor_group, True):
+        if pygame.sprite.spritecollide(self, meteor_group, True, pygame.sprite.collide_mask):
             pygame.quit()
             sys.exit
 
@@ -49,15 +57,21 @@ class Laser(pygame.sprite.Sprite):
         self.pos = pygame.math.Vector2(self.rect.topleft)
         self.direction = pygame.math.Vector2(0,-1)
         self.speed = 600
+        self.mask = pygame.mask.from_surface(self.image)
+        self.explosion = pygame.mixer.Sound("music/explosion.wav")
 
     def laser_hit_check(self):
-        if pygame.sprite.spritecollide(self, meteor_group, True):
+        if pygame.sprite.spritecollide(self, meteor_group, True, pygame.sprite.collide_mask):
             self.kill()
+            self.explosion.set_volume(0.1)
+            self.explosion.play()
 
     def update(self):
         self.pos += self.direction * self.speed * dt
         self.rect.topleft = (round(self.pos.x), round(self.pos.y))
         self.laser_hit_check()  
+        if self.rect.bottom < 0:
+            self.kill()
 
 class Meteor(pygame.sprite.Sprite):
     def __init__(self, start_pos, groups):
@@ -72,18 +86,21 @@ class Meteor(pygame.sprite.Sprite):
         self.speed = randint(300,600)
         self.rotation = 0
         self.rotation_speed = randint(20,50)
+        self.mask = pygame.mask.from_surface(self.image)
 
     def rotate(self):
         self.rotation += self.rotation_speed *dt
         rotated_meteor = pygame.transform.rotozoom(self.scaled_image, self.rotation,1)
         self.image = rotated_meteor
         self.rect = self.image.get_rect(center = self.rect.center)
-
+        self.mask = pygame.mask.from_surface(self.image)
 
     def update(self):
         self.pos += self.direction * self.speed * dt
         self.rect.topleft = (round(self.pos.x), round(self.pos.y))
         self.rotate()
+        if self.rect.top > WINDOW_HEIGHT:
+            self.kill()
 
 class Score():
     def __init__(self):
@@ -105,6 +122,11 @@ pygame.display.set_caption("Asteroid game!")
 clock = pygame.time.Clock()
 meteor_spawn_time = pygame.time.get_ticks()
 meteor_time_rate = 500
+
+# background music
+bg_music = pygame.mixer.Sound("music/music.wav")
+bg_music.play(loops=-1)
+bg_music.set_volume(0.1)
 
 # background
 background_surf = pygame.image.load("graphics/background.png").convert()
